@@ -1,4 +1,4 @@
-import { raise, type UnhandledException } from "./exception";
+import { raise, type getErrorTypeFromMapper } from "./exception";
 import {
   createTagType,
   createUnitType,
@@ -23,18 +23,6 @@ export type Resolved<T> = ReturnType<typeof resolved<T>>;
 export type Rejected<E> = ReturnType<typeof rejected<E>>;
 export type Async<T, E> = Pending | Resolved<T> | Rejected<E>;
 
-export type Tas4k<T, E> = {
-  readonly state: Async<T, E>;
-  isPending(): boolean;
-  isResolved(): boolean;
-  isRejected(): boolean;
-  join(): Promise<Async<T, E>>;
-  resolve(value: T): void;
-  reject(error: E): void;
-  map<R>(mapper: (value: T) => R): Task<R, E>;
-  flatMap<R, E2>(mapper: (value: T) => Task<R, E2>): Task<R, E | E2>;
-};
-
 export class Task<ResolvesTo, RejectedBy> {
   #state: Async<ResolvesTo, RejectedBy> = pending();
   #subscribers = new Set<(state: Async<ResolvesTo, RejectedBy>) => void>();
@@ -51,17 +39,14 @@ export class Task<ResolvesTo, RejectedBy> {
     return t;
   }
 
-  static fromPromise<ResolvesTo, ErrorMapper extends (error: unknown) => any>(
+  static fromPromise<
+    ResolvesTo,
+    ErrorMapper extends ((error: unknown) => any) | undefined = undefined
+  >(
     promise: Promise<ResolvesTo>,
     errorMapper?: ErrorMapper
-  ): Task<
-    ResolvesTo,
-    ErrorMapper extends (error: unknown) => infer E ? E : UnhandledException
-  > {
-    const t = new Task<
-      ResolvesTo,
-      ErrorMapper extends (error: unknown) => infer E ? E : UnhandledException
-    >();
+  ): Task<ResolvesTo, getErrorTypeFromMapper<ErrorMapper>> {
+    const t = new Task<ResolvesTo, getErrorTypeFromMapper<ErrorMapper>>();
 
     promise.then(
       (value) => t.resolve(value),
@@ -125,7 +110,10 @@ export class Task<ResolvesTo, RejectedBy> {
           throw unsafe_unwrap(this.#state);
         }
         return mapper(unsafe_unwrap(this.#state));
-      })()
+      })(),
+      (error: unknown) => {
+        return error as RejectedBy;
+      }
     );
   }
 
@@ -152,7 +140,10 @@ export class Task<ResolvesTo, RejectedBy> {
           throw unsafe_unwrap(subtask.state);
         }
         return unsafe_unwrap(subtask.state);
-      })()
+      })(),
+      (error: unknown) => {
+        return error as RejectedBy | RejectedBy2;
+      }
     );
   }
 }
