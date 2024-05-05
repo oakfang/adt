@@ -59,4 +59,67 @@ describe("Task", () => {
       });
     });
   });
+  describe("<constructor>", () => {
+    it("creates a pending task", () => {
+      const t = new tasks.Task();
+
+      expect(t.isPending()).toBeTrue();
+      expect(t.isResolved()).toBeFalse();
+      expect(t.isRejected()).toBeFalse();
+    });
+  });
+
+  it("can be manually resolved", () => {
+    const t = new tasks.Task<number, string>();
+
+    t.resolve(5);
+
+    expect(t.isPending()).toBeFalse();
+    expect(t.isResolved()).toBeTrue();
+    expect(t.isRejected()).toBeFalse();
+  });
+
+  it("can be manually rejected", () => {
+    const t = new tasks.Task<number, string>();
+
+    t.reject("5");
+
+    expect(t.isPending()).toBeFalse();
+    expect(t.isResolved()).toBeFalse();
+    expect(t.isRejected()).toBeTrue();
+  });
+
+  it("has immutable internal state after settling", () => {
+    const t = new tasks.Task<number, string>();
+
+    t.resolve(5);
+    t.reject("5");
+    t.resolve(6);
+
+    expect(unsafe_unwrap(t.state)).toBe(5);
+  });
+
+  it("can be mapped", async () => {
+    const t1 = new tasks.Task<number, string>();
+    const t2 = t1.map((v) => v > 0);
+
+    expectType<tasks.Task<boolean, string>>(t2);
+    t1.resolve(-4);
+
+    await t2.settled();
+
+    expect(unsafe_unwrap(t2.state)).toBe(false);
+  });
+
+  it("can be flat-mapped", async () => {
+    const t1 = new tasks.Task<number, string>();
+    const t2 = t1.flatMap((v) => tasks.Task.resolved(v > 0));
+
+    expectType<tasks.Task<boolean, string>>(t2);
+    t1.resolve(-4);
+
+    await t2.settled();
+
+    expect(unsafe_unwrap(t2.state)).toBe(false);
+  });
 });
