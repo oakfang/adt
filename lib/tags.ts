@@ -1,6 +1,8 @@
-const variant: unique symbol = Symbol("$$variant");
-const internal: unique symbol = Symbol("$$internal");
-const empty: unique symbol = Symbol("$$empty");
+import type Opaque from "ts-opaque";
+
+const variant = Symbol("$$variant");
+const internal = Symbol("$$internal");
+const empty = Symbol("$$empty");
 const unwrap = Symbol("$$unwrap");
 
 type Empty = typeof empty;
@@ -26,13 +28,13 @@ const variantsRegistry = new WeakMap<symbol, string>();
 export type UnitTag<
   Variant extends symbol,
   VariantName extends string
-> = BaseTag<true, Empty, Variant, VariantName, false>;
+> = Opaque<BaseTag<true, Empty, Variant, VariantName, false>>;
 export type Tag<
   Variant extends symbol,
   VariantName extends string,
   T,
   Unwrappable extends boolean = false
-> = BaseTag<false, T, Variant, VariantName, Unwrappable>;
+> = Opaque<BaseTag<false, T, Variant, VariantName, Unwrappable>>;
 
 export type AnyTag =
   | UnitTag<symbol, string>
@@ -49,9 +51,10 @@ type TagConstructor<T extends AnyTag> = T extends Tag<
   ? () => UnitTag<S, N>
   : never;
 
-export type Tagger<TagType extends AnyTag> = TagConstructor<TagType> & {
-  [variant]: TagType[typeof variant];
-};
+export type Tagger<TagType extends AnyTag> = TagConstructor<TagType> &
+  Opaque<{
+    [variant]: TagType[typeof variant];
+  }>;
 
 export type TaggerOf<T extends AnyTag> = {
   [k in T as k["__private_variant"]]: k extends UnitTag<
@@ -68,7 +71,7 @@ function createBaseTagger<
   Name extends string,
   Unwrappable extends boolean = false
 >(variantName: Name, unwrappable?: Unwrappable) {
-  const identifier: unique symbol = Symbol(variantName);
+  const identifier = Symbol(variantName);
   variantsRegistry.set(identifier, variantName);
   function tag<T>(
     value: T
@@ -102,13 +105,13 @@ function createBaseTagger<
 
 export function createUnitType<Name extends string>(typeName: Name) {
   const tag = createBaseTagger(typeName);
-  type Tagger = typeof tag;
+  type BaseTagger = typeof tag;
   return Object.assign(
-    () => tag(empty) as UnitTag<Tagger[typeof variant], Name>,
+    () => tag(empty) as UnitTag<BaseTagger[typeof variant], Name>,
     {
       [variant]: tag[variant],
     }
-  );
+  ) as Tagger<UnitTag<BaseTagger[typeof variant], Name>>;
 }
 
 /**
@@ -119,15 +122,20 @@ export function createTagType<
   Unwrappable extends boolean = false
 >(typeName: Name, unwrappable?: Unwrappable) {
   const tag = createBaseTagger(typeName, unwrappable);
-  type Tagger = typeof tag;
-  return Object.assign(
-    <T>(value: T) => {
-      return tag(value) as Tag<Tagger[typeof variant], Name, T, Unwrappable>;
-    },
-    {
-      [variant]: tag[variant],
-    }
-  );
+  type BaseTagger = typeof tag;
+  const tagger = <T>(value: T) => {
+    return tag(value) as unknown as Tag<
+      BaseTagger[typeof variant],
+      Name,
+      T,
+      Unwrappable
+    >;
+  };
+  return Object.assign(tagger, {
+    [variant]: tag[variant],
+  }) as typeof tagger extends (value: infer V) => any
+    ? Tagger<Tag<BaseTagger[typeof variant], Name, V, Unwrappable>>
+    : never;
 }
 
 export function isTagOfType<T extends AnyTag>(

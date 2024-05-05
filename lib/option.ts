@@ -3,7 +3,6 @@ import {
   createUnitType,
   isTagOfType,
   unsafe_unwrap,
-  type AnyTag,
 } from "./tags";
 
 export const some = createTagType("some", true);

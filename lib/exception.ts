@@ -1,8 +1,9 @@
 import { createTagType } from "./tags";
 
 const unhandledException = createTagType("UnhandledException");
-export const raise = unhandledException<unknown>;
-export type UnhandledException = ReturnType<typeof raise>;
+const _raise = unhandledException;
+export const raise = (value: unknown) => _raise(value);
+export type UnhandledException = ReturnType<typeof _raise<unknown>>;
 
 export type getErrorTypeFromMapper<
   ErrorMapper extends ((error: unknown) => any) | undefined = undefined

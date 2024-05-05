@@ -1,12 +1,24 @@
 {
   "name": "@oakfang/adt",
-  "module": "index.ts",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "build": "bun run index.ts"
+  },
+  "exports": {
+    ".": {
+      "default": "./node/index.js",
+      "types": "./node/index.d.ts",
+      "bun": "./lib/index.ts"
+    }
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "bun-plugin-dts": "^0.2.3"
   },
   "peerDependencies": {
     "typescript": "^5.5.0-beta"
+  },
+  "dependencies": {
+    "ts-opaque": "^3.0.1"
   }
 }
