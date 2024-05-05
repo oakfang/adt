@@ -6,6 +6,7 @@ import {
   type ExcludeUnwrappable,
   type Unwrapped,
 } from "./tags";
+import { Task } from "./tasks";
 
 export function* unwrap<T extends AnyTag>(
   tag: T
@@ -37,4 +38,24 @@ export function run<E, R>(
   } catch (tag) {
     return error(tag as Exclude<E, null>);
   }
+}
+
+export function runAsync<E, R>(
+  generator: () => AsyncGenerator<E, R, any>
+): Task<R, Exclude<E, null>> {
+  const gen = generator();
+  const task = new Task<R, Exclude<E, null>>();
+  (async () => {
+    let res = await gen.next();
+    while (!res.done) {
+      const tag = res.value;
+      if (tag) return task.reject(tag as Exclude<E, null>);
+      else {
+        res = await gen.next();
+      }
+    }
+    return task.resolve(res.value);
+  })();
+
+  return task;
 }

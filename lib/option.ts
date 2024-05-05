@@ -3,6 +3,7 @@ import {
   createUnitType,
   isTagOfType,
   unsafe_unwrap,
+  type AnyTag,
 } from "./tags";
 
 export const some = createTagType("some", true);
@@ -11,7 +12,7 @@ export type Some<T> = ReturnType<typeof some<T>>;
 export type None = ReturnType<typeof none>;
 export type Option<T> = Some<T> | None;
 
-export const isNone = (option: Option<unknown>): option is None =>
+export const isNone = (option: unknown): option is None =>
   isTagOfType<None>(option, none);
 
 export const getOrElse = <T>(option: Option<T>, defaultValue: T) =>

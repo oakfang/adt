@@ -1,5 +1,5 @@
 {
-  "name": "tag",
+  "name": "@oakfang/adt",
   "module": "index.ts",
   "type": "module",
   "scripts": {},

@@ -23,6 +23,28 @@ export type Resolved<T> = ReturnType<typeof resolved<T>>;
 export type Rejected<E> = ReturnType<typeof rejected<E>>;
 export type Async<T, E> = Pending | Resolved<T> | Rejected<E>;
 
+type getResolution<R extends Async<any, any>> = R extends Resolved<infer Right>
+  ? Right
+  : never;
+type getRejection<R extends Async<any, any>> = R extends Rejected<infer Left>
+  ? Left
+  : never;
+
+export function handle<R extends Async<any, any>>(
+  result: R,
+  pendingHandler: () => getResolution<R>,
+  errorHandler: (error: getRejection<R>) => getResolution<R>
+): getResolution<R> {
+  if (isPending(result)) return pendingHandler();
+  if (isRejected(result))
+    return errorHandler(unsafe_unwrap(result as Rejected<getRejection<R>>));
+  if (isResolved(result)) {
+    return unsafe_unwrap(result) as getResolution<R>;
+  }
+
+  throw new Error("Type error, not a result type");
+}
+
 export class Task<ResolvesTo, RejectedBy> {
   #state: Async<ResolvesTo, RejectedBy> = pending();
   #subscribers = new Set<(state: Async<ResolvesTo, RejectedBy>) => void>();
