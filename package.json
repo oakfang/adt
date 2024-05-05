@@ -1,8 +1,10 @@
 {
   "name": "@oakfang/adt",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "bun run index.ts"
+    "build": "bun run index.ts",
+    "prepublish": "bun run build"
   },
   "exports": {
     ".": {
