@@ -10,7 +10,7 @@ export const pending = createUnitType("pending");
 export const isPending = (async: unknown): async is Pending =>
   isTagOfType(async, pending);
 
-export const resolved = createTagType("resolved");
+export const resolved = createTagType("resolved", true);
 export const isResolved = <T>(async: unknown): async is Resolved<T> =>
   isTagOfType(async, resolved);
 

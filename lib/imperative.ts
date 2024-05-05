@@ -1,44 +1,40 @@
-import { some } from "./option";
+import { error, ok, type Result } from "./result";
 import {
-  unsafe_getVariant,
+  isUnwrappable,
   unsafe_unwrap,
   type AnyTag,
-  type Tag,
-  type Tagger,
+  type ExcludeUnwrappable,
+  type Unwrapped,
 } from "./tags";
 
-const imperativeRegistry = new WeakSet<symbol>();
-
-export function addTagTypeToImperativeRegistry<T extends Tag<any, any, any>>(
-  tagType: Tagger<T>
-) {
-  imperativeRegistry.add(unsafe_getVariant(tagType));
-}
-
-function isTagInImperativeRegistry<T extends AnyTag>(tag: T) {
-  return imperativeRegistry.has(unsafe_getVariant(tag));
-}
-
-function* unwrap<T extends Tag<any, any, any>>(tag: T) {
-  if (isTagInImperativeRegistry(tag)) {
-    yield unsafe_unwrap(tag);
+export function* unwrap<T extends AnyTag>(
+  tag: T
+): Generator<ExcludeUnwrappable<T> | null, Unwrapped<T>> {
+  if (isUnwrappable(tag)) {
+    const value = unsafe_unwrap(tag) as Unwrapped<T>;
+    yield null;
+    return value;
   } else {
+    yield tag as ExcludeUnwrappable<T>;
     throw tag;
   }
 }
 
-addTagTypeToImperativeRegistry(some)
-
-const t = (function* T1() {
-  const x = yield* unwrap(some(4));
-  console.log(x);
-})();
-
-console.log(t.next());
-t.next(3)
-
-// function test<T extends Tag<any, any, any>>(gen: Generator<T, any, any>) {}
-
-// test(function* () {
-//   yield 4;
-// });
+export function run<E, R>(
+  generator: () => Generator<E, R, any>
+): Result<Exclude<E, null>, R> {
+  const gen = generator();
+  try {
+    let res = gen.next();
+    while (!res.done) {
+      const tag = res.value;
+      if (tag) gen.throw(tag);
+      else {
+        res = gen.next();
+      }
+    }
+    return ok(res.value);
+  } catch (tag) {
+    return error(tag as Exclude<E, null>);
+  }
+}

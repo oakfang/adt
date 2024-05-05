@@ -5,7 +5,7 @@ import {
   unsafe_unwrap,
 } from "./tags";
 
-export const some = createTagType("some");
+export const some = createTagType("some", true);
 export const none = createUnitType("none");
 export type Some<T> = ReturnType<typeof some<T>>;
 export type None = ReturnType<typeof none>;

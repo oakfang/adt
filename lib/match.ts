@@ -4,6 +4,7 @@ import {
   type Tagger,
   isTagOfType,
   unsafe_unwrap,
+  isUnit,
 } from "./tags";
 
 type Mapper<T extends AnyTag, Tgr extends TaggerOf<T>, R> = Tgr extends (
@@ -40,6 +41,7 @@ function createMatcher<T extends AnyTag, Current>(
           return mapper();
         }
         if (isTagOfType(tag, tagger)) {
+          if (isUnit(tag)) return mapper();
           const value = unsafe_unwrap(tag);
           //   @ts-expect-error
           return mapper(value);

@@ -7,7 +7,7 @@ import { isNone, none, some, type Option } from "./option";
 import { createTagType, isTagOfType, unsafe_unwrap } from "./tags";
 
 export const error = createTagType("left");
-export const ok = createTagType("right");
+export const ok = createTagType("right", true);
 export type Error<Left> = ReturnType<typeof error<Left>>;
 export type Ok<Right> = ReturnType<typeof ok<Right>>;
 export type Result<Left, Right> = Error<Left> | Ok<Right>;
