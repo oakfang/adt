@@ -62,53 +62,6 @@ type getLeft<R extends Result<any, any>> = R extends Error<infer Left>
   ? Left
   : never;
 
-export function map<R extends Result<any, any>, MappedTo>(
-  result: R,
-  mapper: (value: getRight<R>) => MappedTo
-): Result<getLeft<R>, MappedTo> {
-  const err = getError<getLeft<R>>(result);
-  if (!isNone(err)) {
-    return error(unsafe_unwrap(err));
-  }
-
-  const value = getOk<getRight<R>>(result);
-  if (!isNone(value)) {
-    return ok(mapper(unsafe_unwrap(value)));
-  }
-
-  throw new Error("Type error, not a result type");
-}
-
-export function flatMap<
-  InResult extends Result<any, any>,
-  OutResult extends Result<any, any>
->(
-  result: InResult,
-  mapper: (value: getRight<InResult>) => OutResult
-): Result<getLeft<InResult> | getLeft<OutResult>, getRight<OutResult>> {
-  const mapped = map(result, mapper);
-
-  const err = getError<getLeft<InResult>>(mapped);
-  if (!isNone(err)) {
-    return error(unsafe_unwrap(err));
-  }
-
-  const value = getOk<Result<getLeft<OutResult>, getRight<OutResult>>>(mapped);
-  if (!isNone(value)) {
-    const unwrapped = unsafe_unwrap(value);
-    const err2 = getError<getLeft<OutResult>>(unwrapped);
-    if (!isNone(err2)) {
-      return error(unsafe_unwrap(err2));
-    }
-    const value2 = getOk<getRight<OutResult>>(unwrapped);
-    if (!isNone(value2)) {
-      return ok(unsafe_unwrap(value2));
-    }
-  }
-
-  throw new Error("Type error, not a result type");
-}
-
 export function handle<R extends Result<any, any>>(
   result: R,
   handler: (error: getLeft<R>) => getRight<R>

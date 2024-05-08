@@ -1,4 +1,5 @@
 import { raise, type getErrorTypeFromMapper } from "./exception";
+import { map } from "./ops";
 import {
   createTagType,
   createUnitType,
@@ -123,15 +124,9 @@ export class Task<ResolvesTo, RejectedBy> {
   map<Next>(mapper: (value: ResolvesTo) => Next): Task<Next, RejectedBy> {
     return Task.fromPromise(
       (async () => {
-        await this.settled();
-        if (isPending(this.#state)) {
-          // This never happens
-          throw null;
-        }
-        if (!isResolved(this.#state)) {
-          throw unsafe_unwrap(this.#state);
-        }
-        return mapper(unsafe_unwrap(this.#state));
+        const nextState = map(await this.settled(), mapper);
+        if (isResolved(nextState)) return unsafe_unwrap(nextState);
+        else throw unsafe_unwrap(nextState);
       })(),
       (error: unknown) => {
         return error as RejectedBy;
@@ -144,20 +139,12 @@ export class Task<ResolvesTo, RejectedBy> {
   ): Task<ResolvedTo2, RejectedBy | RejectedBy2> {
     return Task.fromPromise(
       (async () => {
-        await this.settled();
-        if (isPending(this.#state)) {
-          // This never happens
-          throw null;
+        const nextState = map(await this.settled(), mapper);
+        if (!isResolved(nextState)) {
+          throw unsafe_unwrap(nextState);
         }
-        if (!isResolved(this.#state)) {
-          throw unsafe_unwrap(this.#state);
-        }
-        const subtask = mapper(unsafe_unwrap(this.#state));
+        const subtask = unsafe_unwrap(nextState);
         await subtask.settled();
-        if (isPending(subtask.state)) {
-          // This never happens
-          throw null;
-        }
         if (!isResolved(subtask.state)) {
           throw unsafe_unwrap(subtask.state);
         }

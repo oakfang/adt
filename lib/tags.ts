@@ -165,8 +165,10 @@ export function isUnit<T extends AnyTag>(t: T) {
   return t[empty];
 }
 
-export function isUnwrappable<T extends AnyTag>(t: T) {
-  return t[unwrap];
+export function isUnwrappable(t: unknown): t is Tag<any, any, unknown, true> {
+  if (!t) return false;
+  if (typeof t !== "object" || !(unwrap in t)) return false;
+  return t[unwrap] === true;
 }
 
 export type Unwrapped<T extends AnyTag> = T extends Tag<any, any, infer V, true>
@@ -181,3 +183,17 @@ export type ExcludeUnwrappable<T extends AnyTag> = T extends Tag<
 >
   ? never
   : T;
+
+export function unsafe_copyWith<T extends Tag<any, any, any, any>, R>(
+  base: T,
+  value: R
+): T extends Tag<infer V, infer N, any, infer U> ? Tag<V, N, R, U> : never {
+  return { ...base, [internal]: value } as unknown as T extends Tag<
+    infer V,
+    infer N,
+    any,
+    infer U
+  >
+    ? Tag<V, N, R, U>
+    : never;
+}

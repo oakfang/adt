@@ -3,6 +3,8 @@ import * as result from "./result";
 import type { UnhandledException } from "./exception";
 import { expectType } from "./test-utils";
 import { getOrElse } from "./option";
+import { flatMap, map } from "./ops";
+import { unsafe_unwrap } from "./tags";
 
 describe("isError", () => {
   it("works with error<X>", () => {
@@ -68,7 +70,7 @@ describe("map", () => {
   it("works when ok", () => {
     const base = result.ok(3);
     expectType<result.Result<never, number>>(base);
-    const x = result.map(base, (value) => value.toString());
+    const x = map(base, (value) => value.toString());
     expectType<result.Result<never, string>>(x);
     expect(result.isOk(x)).toBeTrue();
   });
@@ -84,7 +86,7 @@ describe("map", () => {
       }
     );
     expectType<result.Result<number, string>>(base);
-    const x = result.map(base, (value) => value.split(""));
+    const x = map(base, (value) => value.split(""));
     expectType<result.Result<number, string[]>>(x);
     expect(result.isError(x)).toBeTrue();
   });
@@ -94,16 +96,15 @@ describe("flatMap", () => {
   it("works when ok -> ok", () => {
     const base = result.ok(3);
     expectType<result.Result<never, number>>(base);
-    const x = result.flatMap(base, (value) =>
-      result.attempt(() => value.toString())
-    );
+    const x = flatMap(base, (value) => result.attempt(() => value.toString()));
     expectType<result.Result<UnhandledException, string>>(x);
     expect(result.isOk(x)).toBeTrue();
+    expect(unsafe_unwrap(x)).toBe("3");
   });
   it("works when ok -> error", () => {
     const base = result.ok(3);
     expectType<result.Result<never, number>>(base);
-    const x = result.flatMap(base, (value) =>
+    const x = flatMap(base, (value) =>
       result.attempt(() => {
         if (!value) return value.toString();
         throw new Error();
@@ -111,6 +112,11 @@ describe("flatMap", () => {
     );
     expectType<result.Result<UnhandledException, string>>(x);
     expect(result.isError(x)).toBeTrue();
+    const err = unsafe_unwrap(x);
+    if (typeof err === "string") {
+      return expect(err).fail();
+    }
+    expect(unsafe_unwrap(err)).toBeInstanceOf(Error);
   });
 
   it("works when error", () => {
@@ -124,7 +130,7 @@ describe("flatMap", () => {
       }
     );
     expectType<result.Result<number, string>>(base);
-    const x = result.flatMap(base, (value) => result.ok(value.split("")));
+    const x = flatMap(base, (value) => result.ok(value.split("")));
     expectType<result.Result<number, string[]>>(x);
     expect(result.isError(x)).toBeTrue();
   });
