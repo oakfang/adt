@@ -161,6 +161,10 @@ export function unsafe_getVariant<T extends { [variant]: symbol }>(object: T) {
   return object[variant];
 }
 
+export type HasUnit<T extends AnyTag> = T extends UnitTag<any, any>
+  ? true
+  : false;
+
 export function isUnit<T extends AnyTag>(t: T) {
   return t[empty];
 }
@@ -173,6 +177,10 @@ export function isUnwrappable(t: unknown): t is Tag<any, any, unknown, true> {
 
 export type Unwrapped<T extends AnyTag> = T extends Tag<any, any, infer V, true>
   ? V
+  : never;
+
+export type Unwrappable<T extends AnyTag> = T extends Tag<any, any, any, true>
+  ? T
   : never;
 
 export type ExcludeUnwrappable<T extends AnyTag> = T extends Tag<

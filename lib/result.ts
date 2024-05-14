@@ -3,7 +3,7 @@ import {
   type UnhandledException,
   type getErrorTypeFromMapper,
 } from "./exception";
-import { isNone, none, some, type Option } from "./option";
+import { none, some, type Option } from "./option";
 import { createTagType, isTagOfType, unsafe_unwrap } from "./tags";
 
 export const error = createTagType("left");
@@ -16,22 +16,10 @@ export const isError = <Res extends Result<any, any>>(
   result: unknown
 ): result is Error<Res extends Result<infer Left, any> ? Left : unknown> =>
   isTagOfType(result, error);
-function getError<Left = unknown>(result: unknown): Option<Left> {
-  if (isError(result)) {
-    return some(unsafe_unwrap(result));
-  }
-  return none();
-}
 export const isOk = <Res extends Result<any, any>>(
   result: unknown
 ): result is Ok<Res extends Result<any, infer Right> ? Right : unknown> =>
   isTagOfType(result, ok);
-function getOk<Right = unknown>(result: unknown): Option<Right> {
-  if (isOk(result)) {
-    return some(unsafe_unwrap(result));
-  }
-  return none();
-}
 
 export function panic(error?: unknown) {
   if (error) throw error;
@@ -55,35 +43,11 @@ export function attempt<
   }
 }
 
-type getRight<R extends Result<any, any>> = R extends Ok<infer Right>
-  ? Right
-  : never;
-type getLeft<R extends Result<any, any>> = R extends Error<infer Left>
-  ? Left
-  : never;
-
-export function handle<R extends Result<any, any>>(
-  result: R,
-  handler: (error: getLeft<R>) => getRight<R>
-): getRight<R> {
-  const err = getError<getLeft<R>>(result);
-  if (!isNone(err)) {
-    return handler(unsafe_unwrap(err));
-  }
-
-  const value = getOk<getRight<R>>(result);
-  if (!isNone(value)) {
-    return unsafe_unwrap(value);
-  }
-
-  throw new Error("Type error, not a result type");
-}
-
 export function rescue<T>(
-  exception: UnhandledException,
+  exception: Error<UnhandledException>,
   guard: (value: unknown) => value is T
 ): Option<T> {
-  const error = unsafe_unwrap(exception);
+  const error = unsafe_unwrap(unsafe_unwrap(exception));
   if (guard(error)) {
     return some(error);
   }

@@ -2,8 +2,7 @@ import { describe, it, expect } from "bun:test";
 import * as result from "./result";
 import type { UnhandledException } from "./exception";
 import { expectType } from "./test-utils";
-import { getOrElse } from "./option";
-import { flatMap, map } from "./ops";
+import { flatMap, map, or, orFn } from "./ops";
 import { unsafe_unwrap } from "./tags";
 
 describe("isError", () => {
@@ -138,13 +137,13 @@ describe("flatMap", () => {
 
 describe("handle", () => {
   it("works with ok", () => {
-    expect(result.handle(result.ok(4), () => 0)).toBe(4);
+    expect(orFn(result.ok(4), () => 0)).toBe(4);
   });
 
   it("works with error", () => {
     expect(
-      result.handle(result.error(4) as result.Result<number, string>, (e) =>
-        e.toString()
+      orFn(result.error(4) as result.Result<number, string>, (_, e) =>
+        or(e, 0).toString()
       )
     ).toBe("4");
   });
@@ -161,13 +160,13 @@ describe("rescue", () => {
       if (false) return Test.Success;
       throw Test.FailureWithCorrectType;
     });
-    expectType<result.Result<UnhandledException, number>>(base);
-    const extraction = result.handle(base, (e) =>
-      getOrElse(
+    expectType<result.Result<UnhandledException, Test>>(base);
+    const extraction = orFn(base, (e) => {
+      return or(
         result.rescue(e, (e): e is number => typeof e === "number"),
         Test.FailureWithIncorrectType
-      )
-    );
+      );
+    });
     expect(extraction).toBe(Test.FailureWithCorrectType);
   });
 
@@ -177,8 +176,8 @@ describe("rescue", () => {
       throw "";
     });
     expectType<result.Result<UnhandledException, number>>(base);
-    const extraction = result.handle(base, (e) =>
-      getOrElse(
+    const extraction = orFn(base, (e) =>
+      or(
         result.rescue(e, (e): e is number => typeof e === "number"),
         Test.FailureWithIncorrectType
       )

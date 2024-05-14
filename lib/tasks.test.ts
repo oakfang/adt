@@ -4,6 +4,7 @@ import { expectType } from "./test-utils";
 import { unsafe_unwrap } from "./tags";
 import { type UnhandledException } from "./exception";
 import { panic } from "./result";
+import { or, orFn } from "./ops";
 
 describe("Task", () => {
   describe("static methods", () => {
@@ -121,5 +122,33 @@ describe("Task", () => {
     await t2.settled();
 
     expect(unsafe_unwrap(t2.state)).toBe(false);
+  });
+
+  it("can be handled with ops", () => {
+    const t1 = new tasks.Task<number, string>();
+    const t2 = new tasks.Task<number, string>();
+
+    expect(or(t1.state, -1)).toBe(-1);
+    expect(
+      orFn(t1.state, (_, value) =>
+        or(value, "pending") === "pending" ? -2 : -3
+      )
+    ).toBe(-2);
+
+    t1.resolve(4);
+    expect(or(t1.state, -1)).toBe(4);
+    expect(
+      orFn(t1.state, (_, value) =>
+        or(value, "pending") === "pending" ? -2 : -3
+      )
+    ).toBe(4);
+
+    t2.reject('foo');
+    expect(or(t2.state, -1)).toBe(-1);
+    expect(
+      orFn(t2.state, (_, value) =>
+        or(value, "pending") === "pending" ? -2 : -3
+      )
+    ).toBe(-3);
   });
 });

@@ -1,13 +1,6 @@
 import { test, expect } from "bun:test";
-import {
-  type Option,
-  fromNullable,
-  getOrElse,
-  isNone,
-  none,
-  some,
-} from "./option";
-import { map } from "./ops";
+import { type Option, fromNullable, isNone, none, some } from "./option";
+import { map, or } from "./ops";
 import { expectType } from "./test-utils";
 import { unsafe_unwrap } from "./tags";
 
@@ -23,18 +16,18 @@ test("None is none", () => {
   expect(isNone(x)).toBeTrue();
 });
 
-test("getOrElse (none)", () => {
-  expect(getOrElse(none(), 6)).toBe(6);
+test("or (none)", () => {
+  expect(or(none() as Option<number>, 6)).toBe(6);
 });
 
-test("getOrElse (some<x>)", () => {
-  expect(getOrElse(some(2), 6)).toBe(2);
+test("or (some<x>)", () => {
+  expect(or(some(2), 6)).toBe(2);
 });
 
 test("fromNullable", () => {
   expect(isNone(fromNullable(null))).toBeTrue();
   expect(isNone(fromNullable(undefined))).toBeTrue();
-  expect(getOrElse(fromNullable(2), 4)).toBe(2);
+  expect(or(fromNullable(2), 4)).toBe(2);
 });
 
 test("mapping it [none]", () => {

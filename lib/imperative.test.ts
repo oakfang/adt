@@ -59,14 +59,13 @@ describe("run", () => {
         number
       >
     >(x);
-    const result = adt.result.handle(x, (err) =>
-      adt.option.isNone(err)
-        ? -1
-        : adt.result.handle<adt.result.Result<DivisionByZeroError, number>>(
-            err,
-            (e) => e.code
-          )
-    );
+    const result = adt.ops.handle(x, (_, err) => {
+      if (adt.option.isNone(err)) return -1;
+      return adt.ops.or(
+        adt.ops.map(adt.ops.unwrap(err), (e) => e.code),
+        -2
+      );
+    });
     expect(result).toBe(-5);
   });
 });
@@ -135,17 +134,17 @@ describe("runAsync", () => {
       >
     >(x);
 
-    const result = adt.tasks.handle(
-      await x.settled(),
-      () => -1,
-      (err) =>
-        adt.result.isError(err)
-          ? adt.result.handle<adt.result.Result<DivisionByZeroError, number>>(
-              err,
-              (e) => e.code
-            )
-          : -1
-    );
+    const result = adt.ops.handle(await x.settled(), (_, err) => {
+      if (adt.option.isNone(err)) return -1;
+      if (adt.tasks.isPending(err)) return -2;
+      if (adt.tasks.isRejected(err)) return -3;
+
+      return adt.ops.or(
+        adt.ops.map(adt.ops.unwrap(err), (e) => e.code),
+        -4
+      );
+    });
+
     expect(result).toBe(-5);
   });
 });
